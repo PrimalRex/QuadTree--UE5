@@ -195,7 +195,13 @@ void QTreeNode::DrawBounds(UWorld* World, float Time, float Thickness)
 
 	Center.Z = NodeData.bIsWithinPlayerRange ? Center.Z + 8 : Center.Z + 5;
 
-	if(!bFilterEmptyQuads || NodeData.Objects.Num() != 0 || NodeData.Level != 0)
+	if(bFilterEmptyQuads)
+	{
+		if(NodeData.Objects.Num() != 0 && NodeData.Level != 0)
+		{
+			UKismetSystemLibrary::DrawDebugBox(World, Center, Extend + FVector(0, 0, 1), DrawColor, FRotator::ZeroRotator, Time, Thickness);
+		}
+	} else
 	{
 		UKismetSystemLibrary::DrawDebugBox(World, Center, Extend + FVector(0, 0, 1), DrawColor, FRotator::ZeroRotator, Time, Thickness);
 	}
