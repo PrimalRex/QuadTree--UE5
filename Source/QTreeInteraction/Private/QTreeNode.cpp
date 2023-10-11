@@ -40,7 +40,6 @@ bool QTreeNode::AABBInclusion(const ENodeQuadrant QuadrantToCheck,TWeakObjectPtr
 	}
 }
 
-
 void QTreeNode::Insertion(TWeakObjectPtr<AActor> Object)
 {
 	//Check if this node is a leaf node
@@ -143,16 +142,15 @@ void QTreeNode::Partition()
 
 TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, float Radius)
 {
-	// All Queried Objects to be returned in an array
+	//All Queried Objects to be returned in an array
 	TArray<TWeakObjectPtr<AActor>> Result;
 	NodeData.bIsWithinPlayerRange = false;
-
-	// Check if the current node is a leaf node (Root will return false)
+	//Check if the current node is a leaf node (Root will return false)
 	if (NodeData.bIsLeaf)
 	{
 		for (TWeakObjectPtr<AActor> Object : NodeData.Objects)
 		{
-			FVector ObjectLocation = Object->GetActorLocation();
+			const FVector ObjectLocation = Object->GetActorLocation();
 			if (((ObjectLocation.X - QueryPoint.X) * (ObjectLocation.X - QueryPoint.X) + 
 				 (ObjectLocation.Y - QueryPoint.Y) * (ObjectLocation.Y - QueryPoint.Y) + 
 				 (ObjectLocation.Z - QueryPoint.Z) * (ObjectLocation.Z - QueryPoint.Z) < Radius * Radius))
@@ -165,12 +163,16 @@ TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, 
 	else
 	{
 		{
-			// If this is not a leaf node, recursively check child nodes
+			//If this is not a leaf node, recursively check child nodes
 			for (int32 i = 0; i < 4; ++i)
 			{
-				if (ChildNodes[i] && AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint))
+				if (ChildNodes[i] && (AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint + FVector(Radius,0 ,0)) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint + FVector(0, Radius, 0)) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint + FVector(-Radius,0 ,0)) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint + FVector(0, -Radius, 0))))
 				{
-					// Recursively call range query on child nodes
+					//Recursively call range query on child nodes
 					Result.Append(ChildNodes[i]->RangeQuery(QueryPoint, Radius));
 				}
 			}
@@ -193,9 +195,11 @@ void QTreeNode::DrawBounds(UWorld* World, float Time, float Thickness)
 
 	Center.Z = NodeData.bIsWithinPlayerRange ? Center.Z + 8 : Center.Z + 5;
 
-	UKismetSystemLibrary::DrawDebugBox(World, Center, Extend + FVector(0, 0, 1), DrawColor, FRotator::ZeroRotator, Time, Thickness);
-
-	// Recursively draw bounds of child nodes.
+	if(NodeData.Objects.Num() != 0 && NodeData.Level != 0)
+	{
+		UKismetSystemLibrary::DrawDebugBox(World, Center, Extend + FVector(0, 0, 1), DrawColor, FRotator::ZeroRotator, Time, Thickness);
+	}
+	
 	for (int32 i = 0; i < 4; i++)
 	{
 		if (ChildNodes[i])
