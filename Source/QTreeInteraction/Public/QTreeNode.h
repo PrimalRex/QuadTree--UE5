@@ -14,6 +14,7 @@ class QTREEINTERACTION_API QTreeNode : public IQTreeInterface
 public:
 	int32 TreeDepth;
 	int32 MaxPerZone;
+	bool bFilterEmptyQuads;
 	struct FBounds
 	{
 		FVector Min;
@@ -36,7 +37,7 @@ public:
 	UWorld* WorldRef = nullptr;
 	
 	QTreeNode(const TSharedPtr<QTreeNode>& MainNode = nullptr, uint32 Level = 0, const FBounds& NewBounds = {FVector(0, 0, 0), FVector(0, 0, 0)},
-		ENodeQuadrant NewQuadrant = ENodeQuadrant::NW, const int32& MaximumItemsPerZone = 3, const int32& MaximumTreeDepth = 5)
+		ENodeQuadrant NewQuadrant = ENodeQuadrant::NW, const int32& MaximumItemsPerZone = 3, const int32& MaximumTreeDepth = 5, bool bFilterUnusedQuads = true)
 	{
 		RootNode = MainNode;
 		Quadrant = NewQuadrant;
@@ -46,6 +47,7 @@ public:
 		NodeData.bIsWithinPlayerRange = false;
 		MaxPerZone = MaximumItemsPerZone;
 		TreeDepth = MaximumTreeDepth;
+		bFilterEmptyQuads = bFilterUnusedQuads;
 		//Use 4 child nodes as we want to divide into 4 quadrants
 		ChildNodes.Init(MainNode, 4);
 	};
