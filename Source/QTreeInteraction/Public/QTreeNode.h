@@ -70,7 +70,7 @@ public:
 	void Partition();
 
 	UFUNCTION()
-	TArray<TWeakObjectPtr<AActor>> RangeQuery(const FVector& QueryPoint, float Radius);
+	TArray<TWeakObjectPtr<AActor>> RangeQuery(const FVector& QueryPoint, float Radius, TArray<QTreeNode*>& ObjectNode);
 	
 	UFUNCTION()
 	void DrawBounds(UWorld* World, float Time, float Thickness);

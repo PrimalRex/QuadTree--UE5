@@ -78,87 +78,89 @@ void QTreeNode::Partition()
     	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("At Max Depth!"));
         return;
     }
-    else
+    //Calculate the dimensions of the child quadrants based on current bounds
+    FVector ParentMin = NodeData.Bounds.Min;
+    FVector ParentMax = NodeData.Bounds.Max;
+    FVector ParentMidPoint = (ParentMin + ParentMax) * 0.5f;
+
+    //Create child nodes for the quadrants
+    for (int32 i = 0; i < 4; i++)
     {
-        //Calculate the dimensions of the child quadrants based on current bounds
-        FVector ParentMin = NodeData.Bounds.Min;
-        FVector ParentMax = NodeData.Bounds.Max;
-        FVector ParentMidPoint = (ParentMin + ParentMax) * 0.5f;
+	    ENodeQuadrant ChildQuadrant = static_cast<ENodeQuadrant>(i);
+	    FBounds ChildBounds;
 
-        //Create child nodes for the quadrants
-        for (int32 i = 0; i < 4; i++)
-        {
-            ENodeQuadrant ChildQuadrant = static_cast<ENodeQuadrant>(i);
-            FBounds ChildBounds;
+	    switch (ChildQuadrant)
+	    {
+	    case ENodeQuadrant::NW:
+		    ChildBounds.Min = FVector(ParentMin.X, ParentMidPoint.Y, 0);
+		    ChildBounds.Max = FVector(ParentMidPoint.X, ParentMax.Y,0);
+		    break;
 
-            switch (ChildQuadrant)
-            {
-            case ENodeQuadrant::NW:
-            	ChildBounds.Min = FVector(ParentMin.X, ParentMidPoint.Y, 0);
-            	ChildBounds.Max = FVector(ParentMidPoint.X, ParentMax.Y,0);
-            	break;
+	    case ENodeQuadrant::NE:
+		    ChildBounds.Min = ParentMidPoint;
+		    ChildBounds.Max = ParentMax;
+		    break;
 
-            case ENodeQuadrant::NE:
-            	ChildBounds.Min = ParentMidPoint;
-            	ChildBounds.Max = ParentMax;
-            	break;
+	    case ENodeQuadrant::SW:
+		    ChildBounds.Min = ParentMin;
+		    ChildBounds.Max = ParentMidPoint;
+		    break;
 
-            case ENodeQuadrant::SW:
-            	ChildBounds.Min = ParentMin;
-            	ChildBounds.Max = ParentMidPoint;
-            	break;
+	    case ENodeQuadrant::SE:
+		    ChildBounds.Min = FVector(ParentMidPoint.X, ParentMin.Y ,0);
+		    ChildBounds.Max = FVector(ParentMax.X, ParentMidPoint.Y, 0);
+		    break;
 
-            case ENodeQuadrant::SE:
-            	ChildBounds.Min = FVector(ParentMidPoint.X, ParentMin.Y ,0);
-            	ChildBounds.Max = FVector(ParentMax.X, ParentMidPoint.Y, 0);
-            	break;
-
-            default:
-            	break;
-            }
+	    default:
+		    break;
+	    }
         	
-            ChildNodes[i] = MakeShared<QTreeNode>(RootNode, NodeData.Level + 1, ChildBounds, ChildQuadrant, MaxPerZone, TreeDepth, bFilterEmptyQuads);
-        }
-
-        //Move objects from the current node to child nodes since we're subdividing
-        NodeData.bIsLeaf = false;
-        for (TWeakObjectPtr<AActor> Object : NodeData.Objects)
-        {
-            for (int32 i = 0; i < 4; i++)
-            {
-                if (AABBInclusion(static_cast<ENodeQuadrant>(i), Object, FVector::ZeroVector))
-                {
-                    ChildNodes[i]->Insertion(Object);
-                    break;
-                }
-            }
-        }
-
-        //Clear objects in the current node since theyve been moved
-        NodeData.Objects.Empty();
+	    ChildNodes[i] = MakeShared<QTreeNode>(RootNode, NodeData.Level + 1, ChildBounds, ChildQuadrant, MaxPerZone, TreeDepth, bFilterEmptyQuads);
     }
+
+    //Move objects from the current node to child nodes since we're subdividing
+    NodeData.bIsLeaf = false;
+    for (TWeakObjectPtr<AActor> Object : NodeData.Objects)
+    {
+	    for (int32 i = 0; i < 4; i++)
+	    {
+		    if (AABBInclusion(static_cast<ENodeQuadrant>(i), Object, FVector::ZeroVector))
+		    {
+			    ChildNodes[i]->Insertion(Object);
+			    break;
+		    }
+	    }
+    }
+
+    //Clear objects in the current node since theyve been moved
+    NodeData.Objects.Empty();
 }
 
 
-TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, float Radius)
+TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, float Radius, TArray<QTreeNode*>& ObjectNode)
 {
 	//All Queried Objects to be returned in an array
 	TArray<TWeakObjectPtr<AActor>> Result;
-	NodeData.bIsWithinPlayerRange = false;
 	//Check if the current node is a leaf node (Root will return false)
 	if (NodeData.bIsLeaf)
 	{
+		TArray<QTreeNode*> ResultNodes;
+		
 		for (TWeakObjectPtr<AActor> Object : NodeData.Objects)
 		{
 			const FVector ObjectLocation = Object->GetActorLocation();
-			if (((ObjectLocation.X - QueryPoint.X) * (ObjectLocation.X - QueryPoint.X) + 
-				 (ObjectLocation.Y - QueryPoint.Y) * (ObjectLocation.Y - QueryPoint.Y) + 
-				 (ObjectLocation.Z - QueryPoint.Z) * (ObjectLocation.Z - QueryPoint.Z) < Radius * Radius))
+			if (FMath::Abs(ObjectLocation.X - QueryPoint.X) <= Radius &&
+				FMath::Abs(ObjectLocation.Y - QueryPoint.Y) <= Radius &&
+				FMath::Abs(ObjectLocation.Z - QueryPoint.Z) <= Radius)
 			{
-				NodeData.bIsWithinPlayerRange = true;
+				if(!ResultNodes.Contains(this))
+				{
+					ResultNodes.Add(this);
+				}
 				Result.Add(Object);
 			}
 		}
+		ObjectNode.Append(ResultNodes); 
 	}
 	else
 	{
@@ -173,7 +175,7 @@ TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, 
 					AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint + FVector(0, -Radius, 0))))
 				{
 					//Recursively call range query on child nodes
-					Result.Append(ChildNodes[i]->RangeQuery(QueryPoint, Radius));
+					Result.Append(ChildNodes[i]->RangeQuery(QueryPoint, Radius, ObjectNode));
 				}
 			}
 		}
