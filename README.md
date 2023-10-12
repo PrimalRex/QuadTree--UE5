@@ -1,13 +1,13 @@
 # QuadTree--UE5
  A simple QuadTree Algorithm w/  searching
  
-![quadpreview](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/89fe0ad1-6035-40f5-9cbf-c4504d917b4c)
+![quadgidv2](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/cce3b1d2-7430-4041-8aba-b5258e45e50a)
 
 This is a small example of a Tree-based data structure implementation. QuadTree Algorithm + Unreal Spice ontop for visuals.
 
 # USAGE
 *QTreeNode*
-- Main Node for recurssive based tree generation.
+- Main Node for recursive based tree generation.
 - Features AABBInclusion, Insertion, Partition, Experimental RangeQuery
 
 *QTreeManager*
