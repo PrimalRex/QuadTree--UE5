@@ -2,6 +2,7 @@
  A simple QuadTree Algorithm w/  searching
  
 ![quadgidv2](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/cce3b1d2-7430-4041-8aba-b5258e45e50a)
+![quadgifv3](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/411261da-538c-4ac1-a00c-239688760a61)
 
 This is a small example of a Tree-based data structure implementation. QuadTree Algorithm + Unreal Spice ontop for visuals.
 
