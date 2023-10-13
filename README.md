@@ -11,14 +11,14 @@ This is a small example of a Tree-based data structure implementation. QuadTree 
 
 *QTreeNode*
 - Main Node for recursive based tree generation.
-- Features AABBInclusion, Insertion, Partition, Experimental RangeQuery
+- Features AABBInclusion, Insertion, Deletion (w/ Unpartition), Partition, Refresh, Radial Range Query
 
 *QTreeManager*
 - Creates and manages an instance of a QuadTree
 - Adjustable in scale, quadrant depth + size
 
 *QTreeItem*
-- Child Actor that is spawned and is queried in each quandrant
+- Child Actor that is spawned and is queried in each quadrant
 - Uses Interface for Debug
 
 *QTreeComponent*
@@ -28,6 +28,11 @@ This is a small example of a Tree-based data structure implementation. QuadTree 
 
 *QTreeInterface*
 - Underlying Interface to communicate between QNodes and QItems
+
+*QTree GUI*
+- UI Demo Scene for you to play around with parameters and see how the system responds!
+- 
+![quadgifv4](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/2eda206b-1ab9-493e-9d76-2d18c41ecb2b)
 
 
 *!!!!Built on UE5.1, Source is backwards compat but not example content!!!!*
