@@ -7,7 +7,10 @@ This is a small example of a Tree-based data structure implementation. QuadTree 
 
 # USAGE
 
-![quadgifv3](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/411261da-538c-4ac1-a00c-239688760a61)
+*QTree GUI*
+- UI Demo Scene for you to play around with parameters and see how the system responds!
+  
+![quadgifv4](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/2eda206b-1ab9-493e-9d76-2d18c41ecb2b)
 
 *QTreeNode*
 - Main Node for recursive based tree generation.
@@ -29,10 +32,6 @@ This is a small example of a Tree-based data structure implementation. QuadTree 
 *QTreeInterface*
 - Underlying Interface to communicate between QNodes and QItems
 
-*QTree GUI*
-- UI Demo Scene for you to play around with parameters and see how the system responds!
-- 
-![quadgifv4](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/2eda206b-1ab9-493e-9d76-2d18c41ecb2b)
-
+![quadgifv3](https://github.com/PrimalRex/QuadTree--UE5/assets/23298834/411261da-538c-4ac1-a00c-239688760a61)
 
 *!!!!Built on UE5.1, Source is backwards compat but not example content!!!!*
