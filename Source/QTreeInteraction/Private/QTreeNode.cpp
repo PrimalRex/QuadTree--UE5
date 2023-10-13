@@ -45,7 +45,6 @@ void QTreeNode::Insertion(TWeakObjectPtr<AActor> Object)
 	//Check if this node is a leaf node
 	if (NodeData.bIsLeaf)
 	{
-
 		//Insert the actor into the leaf node
 		NodeData.Objects.Add(Object);
 
@@ -65,6 +64,46 @@ void QTreeNode::Insertion(TWeakObjectPtr<AActor> Object)
 				ChildNodes[i]->Insertion(Object);
 				break;
 			}
+		}
+	}
+}
+
+void QTreeNode::Deletion(TWeakObjectPtr<AActor> Object, bool& bLeafEmpty)
+{
+	//Check if this node is a leaf node
+	if (NodeData.bIsLeaf)
+	{
+		//Remove the actor from the leaf node
+		NodeData.Objects.RemoveSingle(Object);
+		bLeafEmpty = NodeData.Objects.Num() == 0;
+	}
+	else
+	{
+		//Assume each child quadrant is empty until we prove otherwise
+		bool bAllChildrenEmpty = true;
+		for (int32 i = 0; i < 4; i++)
+		{
+			if (ChildNodes[i])
+			{
+				bool bChildNodeEmpty = false;
+				ChildNodes[i]->Deletion(Object, bChildNodeEmpty);
+
+				//Since we assume the node is empty, only flag the parent if this returns false
+				if (!bChildNodeEmpty)
+				{
+					bAllChildrenEmpty = false;
+				}
+			}
+		}
+
+		//Nuke children and set this node to be the new leaf
+		if (bAllChildrenEmpty)
+		{
+			for (int32 i = 0; i < 4; i++)
+			{
+				ChildNodes[i].Reset();
+			}
+			NodeData.bIsLeaf = true;
 		}
 	}
 }
@@ -115,7 +154,7 @@ void QTreeNode::Partition()
 		    break;
 	    }
         	
-	    ChildNodes[i] = MakeShared<QTreeNode>(RootNode, NodeData.Level + 1, ChildBounds, ChildQuadrant, MaxPerZone, TreeDepth, bFilterEmptyQuads);
+	    ChildNodes[i] = MakeShared<QTreeNode>(RootNode, NodeData.Level + 1, ChildBounds, ChildQuadrant, MaxPerZone, TreeDepth);
     }
 
     //Move objects from the current node to child nodes since we're subdividing
@@ -184,7 +223,7 @@ TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, 
 }
 
 
-void QTreeNode::DrawBounds(UWorld* World, float Time, float Thickness)
+void QTreeNode::DrawBounds(UWorld* World, float Time, float Thickness, bool bFilterEmptyQuads)
 {
 	if (!World)
 	{
@@ -212,7 +251,7 @@ void QTreeNode::DrawBounds(UWorld* World, float Time, float Thickness)
 	{
 		if (ChildNodes[i])
 		{
-			ChildNodes[i]->DrawBounds(World, Time, Thickness);
+			ChildNodes[i]->DrawBounds(World, Time, Thickness, bFilterEmptyQuads);
 		}
 	}
 }
