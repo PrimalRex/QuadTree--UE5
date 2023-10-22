@@ -42,6 +42,7 @@ bool QTreeNode::AABBInclusion(const ENodeQuadrant QuadrantToCheck,TWeakObjectPtr
 
 void QTreeNode::Insertion(TWeakObjectPtr<AActor> Object)
 {
+	SCOPE_CYCLE_COUNTER(STAT_QTreeInsertion);
 	//Check if this node is a leaf node
 	if (NodeData.bIsLeaf)
 	{
@@ -111,6 +112,7 @@ void QTreeNode::Deletion(TWeakObjectPtr<AActor> Object, bool& bLeafEmpty)
 
 void QTreeNode::Partition()
 {
+	SCOPE_CYCLE_COUNTER(STAT_QTreePartition);
     //We dont want to subdivide if we are at the max depth
     if (NodeData.Level >= TreeDepth)
     {
@@ -178,13 +180,31 @@ void QTreeNode::Partition()
 
 TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, float Radius, TArray<QTreeNode*>& ObjectNode)
 {
+	SCOPE_CYCLE_COUNTER(STAT_QTreeQuery);
+	FCriticalSection CriticalSection;
 	//All Queried Objects to be returned in an array
 	TArray<TWeakObjectPtr<AActor>> Result;
 	//Check if the current node is a leaf node (Root will return false)
 	if (NodeData.bIsLeaf)
 	{
 		TArray<QTreeNode*> ResultNodes;
-		
+
+		/*ParallelFor(NodeData.Objects.Num(), [&](int32 idx)
+		{
+			const FVector ObjectLocation = NodeData.Objects[idx]->GetActorLocation();
+			if (FMath::Abs(ObjectLocation.X - QueryPoint.X) <= Radius &&
+				FMath::Abs(ObjectLocation.Y - QueryPoint.Y) <= Radius &&
+				FMath::Abs(ObjectLocation.Z - QueryPoint.Z) <= Radius)
+			{
+				CriticalSection.Lock();
+				if(!ResultNodes.Contains(this))
+				{
+					ResultNodes.Add(this);
+				}
+				Result.Add(NodeData.Objects[idx]);
+				CriticalSection.Unlock();
+			}	
+		});*/
 		for (TWeakObjectPtr<AActor> Object : NodeData.Objects)
 		{
 			const FVector ObjectLocation = Object->GetActorLocation();
@@ -205,7 +225,21 @@ TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, 
 	{
 		{
 			//If this is not a leaf node, recursively check child nodes
-			for (int32 i = 0; i < 4; ++i)
+			ParallelFor(4, [&](int32 idx)
+			{
+				if (ChildNodes[idx] && (AABBInclusion(static_cast<ENodeQuadrant>(idx), nullptr, QueryPoint) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(idx), nullptr, QueryPoint + FVector(Radius,0 ,0)) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(idx), nullptr, QueryPoint + FVector(0, Radius, 0)) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(idx), nullptr, QueryPoint + FVector(-Radius,0 ,0)) ||
+					AABBInclusion(static_cast<ENodeQuadrant>(idx), nullptr, QueryPoint + FVector(0, -Radius, 0))))
+				{
+					//Recursively call range query on child nodes
+					CriticalSection.Lock();
+					Result.Append(ChildNodes[idx]->RangeQuery(QueryPoint, Radius, ObjectNode));
+					CriticalSection.Unlock();
+				}
+			});
+			/*for (int32 i = 0; i < 4; ++i)
 			{
 				if (ChildNodes[i] && (AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint) ||
 					AABBInclusion(static_cast<ENodeQuadrant>(i), nullptr, QueryPoint + FVector(Radius,0 ,0)) ||
@@ -216,7 +250,7 @@ TArray<TWeakObjectPtr<AActor>> QTreeNode::RangeQuery(const FVector& QueryPoint, 
 					//Recursively call range query on child nodes
 					Result.Append(ChildNodes[i]->RangeQuery(QueryPoint, Radius, ObjectNode));
 				}
-			}
+			}*/
 		}
 	}
 	return Result;
